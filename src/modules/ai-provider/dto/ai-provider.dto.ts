@@ -28,6 +28,23 @@ export class SaveAiProviderDto {
   apiKey?: string;
 }
 
+export class PreviewModelsDto {
+  @ApiProperty({ example: 'https://api.openai.com/v1' })
+  @IsUrl({ require_tld: false, require_protocol: true })
+  @MaxLength(300)
+  baseUrl!: string;
+
+  @ApiPropertyOptional({
+    example: 'sk-...',
+    description: 'Used only for this request. Omit it to use the key saved for the same base URL.',
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(8)
+  @MaxLength(400)
+  apiKey?: string;
+}
+
 export class AiProviderDto {
   @ApiProperty()
   isConfigured!: boolean;

@@ -4,7 +4,12 @@ import { decryptSecret, encryptSecret, maskSecret } from '../../common/crypto/se
 import { ErrorCode, badGateway, badRequest, unavailable } from '../../common/errors/error-code';
 import { securityConfig, type SecurityConfig } from '../../config/app.config';
 import { PrismaService } from '../../prisma/prisma.service';
-import type { AiProviderDto, ProviderModelsDto, SaveAiProviderDto } from './dto/ai-provider.dto';
+import type {
+  AiProviderDto,
+  PreviewModelsDto,
+  ProviderModelsDto,
+  SaveAiProviderDto,
+} from './dto/ai-provider.dto';
 import { findProvider, providerHeaders, usableModels } from './provider-catalog';
 
 export interface ProviderCredentials {
@@ -128,9 +133,22 @@ export class AiProviderService {
     return { models: provider.models, fetchedAt: provider.modelsFetchedAt.toISOString() };
   }
 
+  async previewModels(userId: string, dto: PreviewModelsDto): Promise<ProviderModelsDto> {
+    const baseUrl = dto.baseUrl.trim().replace(/\/+$/, '');
+    const apiKey = dto.apiKey?.trim() || (await this.storedKeyFor(userId, baseUrl));
+
+    if (!apiKey) {
+      throw badRequest(ErrorCode.ProviderKeyRequired, 'An API key is needed for this provider');
+    }
+
+    const models = await this.fetchModels(baseUrl, apiKey);
+
+    return { models, fetchedAt: new Date().toISOString() };
+  }
+
   async refreshModels(userId: string): Promise<ProviderModelsDto> {
     const credentials = await this.getCredentials(userId);
-    const models = await this.fetchModels(credentials);
+    const models = await this.fetchModels(credentials.baseUrl, credentials.apiKey);
     const fetchedAt = new Date();
 
     await this.prisma.aiProvider.update({
@@ -141,12 +159,25 @@ export class AiProviderService {
     return { models, fetchedAt: fetchedAt.toISOString() };
   }
 
-  private async fetchModels(credentials: ProviderCredentials): Promise<string[]> {
+  private async storedKeyFor(userId: string, baseUrl: string): Promise<string | null> {
+    const provider = await this.prisma.aiProvider.findUnique({ where: { userId } });
+
+    if (!provider || provider.baseUrl !== baseUrl) {
+      return null;
+    }
+
+    return decryptSecret(
+      { cipher: provider.apiKeyCipher, iv: provider.apiKeyIv, tag: provider.apiKeyTag },
+      this.config.encryptionKey,
+    );
+  }
+
+  private async fetchModels(baseUrl: string, apiKey: string): Promise<string[]> {
     let response: Response;
 
     try {
-      response = await fetch(`${credentials.baseUrl}/models`, {
-        headers: providerHeaders(credentials.baseUrl, credentials.apiKey),
+      response = await fetch(`${baseUrl}/models`, {
+        headers: providerHeaders(baseUrl, apiKey),
         signal: AbortSignal.timeout(MODELS_TIMEOUT_MS),
       });
     } catch {
@@ -170,7 +201,7 @@ export class AiProviderService {
       (payload.data ?? [])
         .map((model) => model.id)
         .filter((id): id is string => typeof id === 'string'),
-      findProvider(credentials.baseUrl)?.models ?? [],
+      findProvider(baseUrl)?.models ?? [],
     );
   }
 }

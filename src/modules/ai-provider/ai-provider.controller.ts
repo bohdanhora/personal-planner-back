@@ -21,6 +21,7 @@ import {
   AiProviderCheckDto,
   AiProviderDto,
   CatalogProviderDto,
+  PreviewModelsDto,
   ProviderModelsDto,
   SaveAiProviderDto,
 } from './dto/ai-provider.dto';
@@ -80,6 +81,21 @@ export class AiProviderController {
   @ApiOkResponse({ type: ProviderModelsDto })
   models(@CurrentUser() user: AuthenticatedUser): Promise<ProviderModelsDto> {
     return this.providerService.listModels(user.id);
+  }
+
+  @Post('models/preview')
+  @HttpCode(HttpStatus.OK)
+  @Throttle(MODELS_THROTTLE)
+  @ApiOperation({
+    summary: 'Ask a provider for its models with a key that is not saved yet',
+    description: 'Nothing is stored. Without a key the one saved for the same base URL is used.',
+  })
+  @ApiOkResponse({ type: ProviderModelsDto })
+  previewModels(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: PreviewModelsDto,
+  ): Promise<ProviderModelsDto> {
+    return this.providerService.previewModels(user.id, dto);
   }
 
   @Post('models/refresh')
