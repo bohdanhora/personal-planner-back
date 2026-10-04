@@ -1,0 +1,42 @@
+import { Inject, Injectable } from '@nestjs/common';
+import { OAuth2Client } from 'google-auth-library';
+
+import { ErrorCode, unauthorized, unavailable } from '../../common/errors/error-code';
+import { googleConfig, type GoogleConfig } from '../../config/app.config';
+
+export interface GoogleIdentity {
+  googleId: string;
+  email: string;
+  displayName: string | null;
+}
+
+@Injectable()
+export class GoogleIdentityService {
+  private readonly client: OAuth2Client;
+
+  constructor(@Inject(googleConfig.KEY) private readonly config: GoogleConfig) {
+    this.client = new OAuth2Client(config.clientId);
+  }
+
+  async verify(idToken: string): Promise<GoogleIdentity> {
+    if (!this.config.isEnabled) {
+      throw unavailable(ErrorCode.GoogleUnavailable, 'Google sign-in is not configured');
+    }
+
+    const ticket = await this.client
+      .verifyIdToken({ idToken, audience: this.config.clientId })
+      .catch(() => null);
+
+    const payload = ticket?.getPayload();
+
+    if (!payload?.sub || !payload.email || !payload.email_verified) {
+      throw unauthorized(ErrorCode.GoogleRejected, 'Could not verify the Google account');
+    }
+
+    return {
+      googleId: payload.sub,
+      email: payload.email.trim().toLowerCase(),
+      displayName: payload.name?.trim() || null,
+    };
+  }
+}
