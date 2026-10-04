@@ -16,7 +16,7 @@
 
 ## Overview
 
-Personal Planner API is a NestJS REST service for a daily planner that covers both work and personal life. It owns user identity, projects grouped into work and personal areas, tasks placed on days or kept in an inbox, ordering for drag and drop, day schedules, completion statistics, and an optional assistant that turns free text into tasks, plans a day and gives advice.
+Personal Planner API is a NestJS REST service for a daily planner that covers both work and personal life. It owns user identity, projects grouped into work and personal areas, tasks placed on days or kept in an inbox, ordering for drag and drop, day schedules, completion statistics, and an assistant, running on the AI provider each person connects with their own key, that turns free text into tasks, plans a day and gives advice.
 
 ## Core capabilities
 
@@ -30,6 +30,7 @@ Personal Planner API is a NestJS REST service for a daily planner that covers bo
 - **Carry over** - unfinished tasks from earlier days move to a chosen day.
 - **Statistics** - day by day planned and completed tasks, completion rate, focus time, streaks, weekday averages and a project breakdown, computed in a pure domain layer.
 - **Assistant** - quick add from free text, tidying a single task into the house style, planning a day inside working hours, specific tips, and a chat that proposes tasks. Every answer is validated and sanitised before it reaches the client.
+- **AI provider** - every person picks a provider (Anthropic, OpenAI, Google Gemini, xAI, Groq, OpenRouter or any OpenAI compatible URL), pastes a key and chooses a model from the list the key can reach. The key is stored encrypted with AES-256-GCM and never returned.
 
 ## Tech stack
 
@@ -40,7 +41,7 @@ Personal Planner API is a NestJS REST service for a daily planner that covers bo
 | API documentation | OpenAPI through `@nestjs/swagger` |
 | Authentication | JWT, rotating refresh tokens, Passport, bcrypt, Google Identity |
 | Email | Nodemailer over SMTP |
-| Assistant | Anthropic SDK with structured outputs validated by Zod |
+| Assistant | OpenAI compatible chat completions on the user's provider, JSON answers validated by Zod |
 | Validation | class-validator, class-transformer, global whitelisting |
 | Security | helmet, CORS allowlist, throttling |
 | Logging | pino through nestjs-pino |
@@ -67,9 +68,10 @@ The seed creates a demo account with a month and a half of history: `admin@admin
 | --- | --- |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` | Verification codes are written to the server log instead of being emailed |
 | `GOOGLE_CLIENT_ID` | The Google button is hidden in the client |
-| `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Assistant endpoints answer `503 ASSISTANT_DISABLED`, the rest of the app works |
 
 `GET /api/meta` tells the client which of these features are switched on.
+
+`ENCRYPTION_KEY` is required: it encrypts the provider keys people save. Generate one with `openssl rand -hex 32` and keep it stable, changing it makes saved keys unreadable.
 
 ## Error format
 
@@ -90,7 +92,7 @@ Every error has the same shape. Domain errors carry a stable `code` the client t
 
 ```text
 src
-  common        date helpers, validators, error codes, exception filter
+  common        crypto, date helpers, validators, error codes, exception filter
   config        environment validation and typed configuration
   domain        pure statistics functions with unit tests
   modules
@@ -99,7 +101,9 @@ src
     projects    projects and starter projects for new accounts
     tasks       tasks, ordering, schedules, carry over
     insights    statistics endpoint
-    assistant   prompts, context, structured output, sanitising
+    ai-provider provider catalog, encrypted keys, model lists, chat completions
+    assistant   prompts, context, JSON answers, sanitising
+    meta        optional features for the client
     mail        verification email in English, Russian and Ukrainian
   prisma        Prisma client provider
 prisma          schema, migrations, seed
