@@ -1,0 +1,62 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: personal-planner-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-planner_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin}
+      POSTGRES_DB: ${POSTGRES_DB:-personal_planner}
+    ports:
+      - "${POSTGRES_PORT:-5442}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-planner_user} -d ${POSTGRES_DB:-personal_planner}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - planner
+
+  api:
+    build:
+      context: .
+      target: production
+    container_name: personal-planner-api
+    restart: unless-stopped
+    profiles:
+      - api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4200
+      DATABASE_URL: postgresql://${POSTGRES_USER:-planner_user}:${POSTGRES_PASSWORD:-admin}@postgres:5432/${POSTGRES_DB:-personal_planner}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-30d}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-opus-5-5}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3200}
+      APP_URL: ${APP_URL:-http://localhost:3200}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "4200:4200"
+    networks:
+      - planner
+
+volumes:
+  postgres-data:
+
+networks:
+  planner:
+    driver: bridge
