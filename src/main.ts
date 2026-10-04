@@ -31,6 +31,10 @@ async function bootstrap(): Promise<void> {
 
   const config = app.get<AppConfig>(appConfig.KEY);
 
+  if (config.isProduction) {
+    app.set('trust proxy', 1);
+  }
+
   app.enableCors({ origin: config.corsOrigins, credentials: true });
 
   const document = SwaggerModule.createDocument(
