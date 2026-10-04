@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Locale {
+  en
+  ru
+  uk
+}
+
+enum ProjectArea {
+  WORK
+  PERSONAL
+}
+
+enum TaskPriority {
+  LOW
+  NORMAL
+  HIGH
+}
+
+enum TaskStatus {
+  OPEN
+  DONE
+}
+
+model User {
+  id              String    @id @default(uuid()) @db.Uuid
+  email           String    @unique
+  passwordHash    String?
+  googleId        String?   @unique
+  emailVerifiedAt DateTime?
+  onboardedAt     DateTime?
+  displayName     String?
+  locale          Locale    @default(en)
+  timezone        String    @default("UTC")
+  dayStartMinutes Int       @default(540)
+  dayEndMinutes   Int       @default(1080)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  refreshTokens RefreshToken[]
+  verification  EmailVerification?
+  projects      Project[]
+  tasks         Task[]
+}
+
+model EmailVerification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @db.Uuid
+  codeHash  String
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  sentAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  rotatedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Project {
+  id          String      @id @default(uuid()) @db.Uuid
+  userId      String      @db.Uuid
+  name        String
+  code        String
+  area        ProjectArea @default(PERSONAL)
+  description String?
+  position    Int         @default(0)
+  archivedAt  DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks Task[]
+
+  @@unique([userId, code])
+  @@index([userId, position])
+}
+
+model Task {
+  id              String       @id @default(uuid()) @db.Uuid
+  userId          String       @db.Uuid
+  projectId       String?      @db.Uuid
+  title           String
+  notes           String?
+  date            DateTime?    @db.Date
+  startMinutes    Int?
+  durationMinutes Int?
+  priority        TaskPriority @default(NORMAL)
+  status          TaskStatus   @default(OPEN)
+  position        Int          @default(0)
+  completedAt     DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([userId, date, position])
+  @@index([userId, projectId])
+  @@index([userId, completedAt])
+}
