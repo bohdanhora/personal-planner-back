@@ -157,11 +157,3 @@ export class ChatReplyDto {
   @ApiProperty({ type: [TaskDraftDto] })
   drafts!: TaskDraftDto[];
 }
-
-export class MetaDto {
-  @ApiProperty({ nullable: true, type: String })
-  googleClientId!: string | null;
-
-  @ApiProperty()
-  assistantEnabled!: boolean;
-}

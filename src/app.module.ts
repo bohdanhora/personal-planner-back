@@ -7,18 +7,20 @@ import { LoggerModule } from 'nestjs-pino';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import {
   appConfig,
-  assistantConfig,
   googleConfig,
   jwtConfig,
   mailConfig,
+  securityConfig,
   type AppConfig,
 } from './config/app.config';
 import { validateEnvironment } from './config/environment';
+import { AiProviderModule } from './modules/ai-provider/ai-provider.module';
 import { AssistantModule } from './modules/assistant/assistant.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
 import { InsightsModule } from './modules/insights/insights.module';
 import { MailModule } from './modules/mail/mail.module';
+import { MetaModule } from './modules/meta/meta.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { UsersModule } from './modules/users/users.module';
@@ -32,7 +34,7 @@ const GLOBAL_RATE_LIMIT = { ttl: 60_000, limit: 300 };
       isGlobal: true,
       cache: true,
       validate: validateEnvironment,
-      load: [appConfig, jwtConfig, googleConfig, mailConfig, assistantConfig],
+      load: [appConfig, jwtConfig, googleConfig, mailConfig, securityConfig],
     }),
     LoggerModule.forRootAsync({
       inject: [ConfigService],
@@ -58,7 +60,9 @@ const GLOBAL_RATE_LIMIT = { ttl: 60_000, limit: 300 };
     ProjectsModule,
     TasksModule,
     InsightsModule,
+    AiProviderModule,
     AssistantModule,
+    MetaModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

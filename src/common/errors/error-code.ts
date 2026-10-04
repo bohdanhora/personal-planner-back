@@ -14,9 +14,14 @@ export enum ErrorCode {
   ProjectCodeTaken = 'PROJECT_CODE_TAKEN',
   ProjectNotFound = 'PROJECT_NOT_FOUND',
   TaskNotFound = 'TASK_NOT_FOUND',
-  AssistantDisabled = 'ASSISTANT_DISABLED',
+  AssistantNotConfigured = 'ASSISTANT_NOT_CONFIGURED',
   AssistantFailed = 'ASSISTANT_FAILED',
   AssistantBusy = 'ASSISTANT_BUSY',
+  ProviderKeyRequired = 'PROVIDER_KEY_REQUIRED',
+  ProviderKeyRejected = 'PROVIDER_KEY_REJECTED',
+  ProviderUnreachable = 'PROVIDER_UNREACHABLE',
+  ProviderTimeout = 'PROVIDER_TIMEOUT',
+  ProviderFailed = 'PROVIDER_FAILED',
 }
 
 const raise = (status: HttpStatus, code: ErrorCode, message: string): HttpException =>

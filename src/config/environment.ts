@@ -75,12 +75,8 @@ export class EnvironmentVariables {
   MAIL_FROM = 'Personal Planner <no-reply@planner.local>';
 
   @IsString()
-  @IsOptional()
-  ANTHROPIC_API_KEY?: string;
-
-  @IsString()
-  @IsOptional()
-  ANTHROPIC_MODEL = 'claude-opus-5-5';
+  @MinLength(32)
+  ENCRYPTION_KEY!: string;
 
   @IsString()
   @IsOptional()

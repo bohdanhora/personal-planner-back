@@ -1,4 +1,3 @@
-import type { BetaMessageParam } from '@anthropic-ai/sdk/resources/beta/messages/messages';
 import { Injectable } from '@nestjs/common';
 import { TaskStatus } from '@prisma/client';
 
@@ -6,7 +5,7 @@ import { parseLocalDate, todayInTimeZone } from '../../common/date/local-date';
 import { PrismaService } from '../../prisma/prisma.service';
 import { InsightsService } from '../insights/insights.service';
 import { toTaskDto } from '../tasks/tasks.service';
-import { AssistantClientService } from './assistant-client.service';
+import { AssistantClientService, type AssistantMessage } from './assistant-client.service';
 import {
   describeContext,
   sanitiseDraft,
@@ -54,14 +53,9 @@ export class AssistantService {
     private readonly insights: InsightsService,
   ) {}
 
-  get isEnabled(): boolean {
-    return this.client.isEnabled;
-  }
-
   async parse(userId: string, dto: ParseRequestDto): Promise<DraftsDto> {
     const context = await this.buildContext(userId, dto.date);
-    const result = await this.client.generate({
-      effort: 'low',
+    const result = await this.client.generate(userId, {
       system: parseSystemPrompt(context.locale),
       schema: parseResultSchema,
       messages: [
@@ -77,8 +71,7 @@ export class AssistantService {
 
   async suggest(userId: string, dto: SuggestRequestDto): Promise<SuggestionDto> {
     const context = await this.buildContext(userId, dto.date);
-    const result = await this.client.generate({
-      effort: 'low',
+    const result = await this.client.generate(userId, {
       system: suggestSystemPrompt(context.locale),
       schema: suggestResultSchema,
       messages: [
@@ -112,8 +105,7 @@ export class AssistantService {
       return { date: context.date, summary: '', items: [], unscheduled: [] };
     }
 
-    const result = await this.client.generate({
-      effort: 'medium',
+    const result = await this.client.generate(userId, {
       system: planSystemPrompt(context.locale),
       schema: planResultSchema,
       messages: [
@@ -148,8 +140,7 @@ export class AssistantService {
       `Average completions per weekday, Monday first: ${stats.byWeekday.join(', ')}.`,
     ].join('\n');
 
-    const result = await this.client.generate({
-      effort: 'medium',
+    const result = await this.client.generate(userId, {
       system: tipsSystemPrompt(context.locale),
       schema: tipsResultSchema,
       messages: [
@@ -172,13 +163,13 @@ export class AssistantService {
     const context = await this.buildContext(userId, dto.date);
     const [first, ...rest] = dto.messages;
 
-    const messages: BetaMessageParam[] = [
+    const messages: AssistantMessage[] = [
       {
         role: first.role,
         content:
           first.role === 'user' ? `${describeContext(context)}\n\n${first.content}` : first.content,
       },
-      ...rest.map((message): BetaMessageParam => ({
+      ...rest.map((message): AssistantMessage => ({
         role: message.role,
         content: message.content,
       })),
@@ -188,8 +179,7 @@ export class AssistantService {
       messages.unshift({ role: 'user', content: describeContext(context) });
     }
 
-    const result = await this.client.generate({
-      effort: 'medium',
+    const result = await this.client.generate(userId, {
       system: chatSystemPrompt(context.locale),
       schema: chatResultSchema,
       messages,

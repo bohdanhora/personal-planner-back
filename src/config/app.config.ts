@@ -1,5 +1,7 @@
 import { registerAs } from '@nestjs/config';
 
+import { deriveEncryptionKey } from '../common/crypto/secret-cipher';
+
 import { NodeEnvironment } from './environment';
 
 export interface AppConfig {
@@ -33,10 +35,8 @@ export interface MailConfig {
   isEnabled: boolean;
 }
 
-export interface AssistantConfig {
-  apiKey: string;
-  model: string;
-  isEnabled: boolean;
+export interface SecurityConfig {
+  encryptionKey: Buffer;
 }
 
 export const appConfig = registerAs<AppConfig>('app', () => {
@@ -82,12 +82,6 @@ export const mailConfig = registerAs<MailConfig>('mail', () => {
   };
 });
 
-export const assistantConfig = registerAs<AssistantConfig>('assistant', () => {
-  const apiKey = process.env.ANTHROPIC_API_KEY ?? '';
-
-  return {
-    apiKey,
-    model: process.env.ANTHROPIC_MODEL || 'claude-opus-5-5',
-    isEnabled: apiKey.length > 0,
-  };
-});
+export const securityConfig = registerAs<SecurityConfig>('security', () => ({
+  encryptionKey: deriveEncryptionKey(process.env.ENCRYPTION_KEY ?? ''),
+}));
