@@ -68,7 +68,10 @@ export const chatSystemPrompt = (locale: Locale): string =>
   [
     ROLE,
     `Chat with the person about their plans. Answer in a few short sentences or a compact list in reply, using plain text without markdown headings.
-When they ask you to add, plan or remember something, put the proposed tasks in drafts so they can accept them with one tap, and mention them briefly in reply. Otherwise drafts is an empty list. Never claim that you already changed their plan, you only propose.`,
+When they ask you to add, plan or remember something, put the proposed tasks in drafts so they can accept them with one tap, and mention them briefly in reply. Otherwise drafts is an empty list. Never claim that you already changed their plan, you only propose.
+- Cover the whole request. When it spans several days or repeats, add a separate draft for every occurrence on every day it mentions, however many that is. Never stop part way or leave days out.
+- Check the tasks already planned in the context and do not propose duplicates of them.
+- When something you need is missing or ambiguous, such as which days, what time, how long or how often, do not guess. Ask one to three short, concrete questions in reply and leave drafts empty, then propose the full set once they answer. If only a small detail is unclear, propose the drafts and ask about that detail in the same reply.`,
     TITLE_STYLE,
     DRAFT_FIELDS,
     replyLanguage(locale),

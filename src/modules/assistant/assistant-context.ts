@@ -39,6 +39,7 @@ export interface PlannerContext {
   dayEndMinutes: number;
   projects: ContextProject[];
   dayTasks: ContextTask[];
+  upcoming: ContextTask[];
   overdue: ContextTask[];
   inbox: ContextTask[];
 }
@@ -187,6 +188,7 @@ export const describeContext = (context: PlannerContext): string => {
       ),
     ),
     section(`Tasks on ${context.date}`, context.dayTasks.map(describe)),
+    section(`Tasks planned in the two weeks after ${context.date}`, context.upcoming.map(describe)),
     section('Overdue open tasks', context.overdue.map(describe)),
     section('Inbox, not yet planned', context.inbox.map(describe)),
   ]

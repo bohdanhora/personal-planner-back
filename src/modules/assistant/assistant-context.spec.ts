@@ -117,6 +117,7 @@ describe('describeContext', () => {
           projectId: 'p1',
         },
       ],
+      upcoming: [],
       overdue: [],
       inbox: [],
     };

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { TaskStatus } from '@prisma/client';
 
-import { parseLocalDate, todayInTimeZone } from '../../common/date/local-date';
+import { addLocalDays, parseLocalDate, todayInTimeZone } from '../../common/date/local-date';
 import { PrismaService } from '../../prisma/prisma.service';
 import { InsightsService } from '../insights/insights.service';
 import { toTaskDto } from '../tasks/tasks.service';
@@ -42,7 +42,8 @@ import {
 } from './assistant.schemas';
 
 const CONTEXT_LIST_LIMIT = 40;
-const MAX_DRAFTS = 12;
+const UPCOMING_DAYS = 14;
+const UPCOMING_LIST_LIMIT = 120;
 const MAX_TIPS = 4;
 
 @Injectable()
@@ -193,8 +194,7 @@ export class AssistantService {
 
     return drafts
       .map((draft) => sanitiseDraft(draft, projectIds))
-      .filter((draft): draft is TaskDraft => draft !== null)
-      .slice(0, MAX_DRAFTS);
+      .filter((draft): draft is TaskDraft => draft !== null);
   }
 
   private async buildContext(userId: string, date?: string): Promise<PlannerContext> {
@@ -202,7 +202,7 @@ export class AssistantService {
     const today = todayInTimeZone(user.timezone);
     const focus = date ?? today;
 
-    const [projects, dayTasks, overdue, inbox] = await Promise.all([
+    const [projects, dayTasks, upcoming, overdue, inbox] = await Promise.all([
       this.prisma.project.findMany({
         where: { userId, archivedAt: null },
         orderBy: { position: 'asc' },
@@ -211,6 +211,17 @@ export class AssistantService {
         where: { userId, date: parseLocalDate(focus) },
         orderBy: { position: 'asc' },
         take: CONTEXT_LIST_LIMIT,
+      }),
+      this.prisma.task.findMany({
+        where: {
+          userId,
+          date: {
+            gt: parseLocalDate(focus),
+            lte: parseLocalDate(addLocalDays(focus, UPCOMING_DAYS)),
+          },
+        },
+        orderBy: [{ date: 'asc' }, { startMinutes: 'asc' }, { position: 'asc' }],
+        take: UPCOMING_LIST_LIMIT,
       }),
       this.prisma.task.findMany({
         where: { userId, status: TaskStatus.OPEN, date: { lt: parseLocalDate(today) } },
@@ -248,6 +259,7 @@ export class AssistantService {
       dayEndMinutes: user.dayEndMinutes,
       projects: projects.map(toContextProject),
       dayTasks: dayTasks.map(toContextTask),
+      upcoming: upcoming.map(toContextTask),
       overdue: overdue.map(toContextTask),
       inbox: inbox.map(toContextTask),
     };
