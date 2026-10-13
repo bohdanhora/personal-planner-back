@@ -35,6 +35,11 @@ export interface MailConfig {
   isEnabled: boolean;
 }
 
+export interface AdminConfig {
+  apiKey: string;
+  isEnabled: boolean;
+}
+
 export interface SecurityConfig {
   encryptionKey: Buffer;
 }
@@ -85,3 +90,9 @@ export const mailConfig = registerAs<MailConfig>('mail', () => {
 export const securityConfig = registerAs<SecurityConfig>('security', () => ({
   encryptionKey: deriveEncryptionKey(process.env.ENCRYPTION_KEY ?? ''),
 }));
+
+export const adminConfig = registerAs<AdminConfig>('admin', () => {
+  const apiKey = process.env.ADMIN_API_KEY ?? '';
+
+  return { apiKey, isEnabled: apiKey.length > 0 };
+});
