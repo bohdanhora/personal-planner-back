@@ -68,7 +68,7 @@ The seed creates a demo account with a month and a half of history: `admin@admin
 | --- | --- |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` | Verification codes are written to the server log instead of being emailed |
 | `GOOGLE_CLIENT_ID` | The Google button is hidden in the client |
-| `ADMIN_API_KEY` | `GET /api/admin/stats`, `/api/admin/users` and `/api/admin/users/:id` answer `404`. With a key of at least 32 characters they serve the admin panel, which sends it in `X-Admin-Key` |
+| `ADMIN_API_KEY` | `GET /api/admin/stats`, `/api/admin/users`, `GET` and `DELETE /api/admin/users/:id` answer `404`. With a key of at least 32 characters they serve the admin panel, which sends it in `X-Admin-Key` |
 
 `GET /api/meta` tells the client which of these features are switched on.
 
